@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="kr">
+<head>
+    <meta charset="UTF-8">
+    <title>Movie List</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            background-color: #003366;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            margin: 0;
+        }
+
+        form {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 4px;
+        }
+
+        form div {
+            margin-bottom: 15px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        form input[type="text"],
+        form input[type="date"],
+        form select {
+            width: calc(50% - 20px);
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        form button {
+            background-color: #003366;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        form button[type="reset"] {
+            background-color: #ccc;
+            margin-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #003366;
+            color: white;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .pagination a, .pagination span {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #003366;
+        }
+
+        .pagination .current {
+            background-color: #003366;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<h1>KOBIS DB 영화 구축 및 검색</h1>
+<form method="get" action="">
+    <div>
+        <label for="title">영화명</label>
+        <input type="text" id="title" name="title" value="{{ request.GET.title }}" placeholder="Search by movie name">
+    </div>
+    <div>
+        <label for="director">감독명</label>
+        <input type="text" id="director" name="director" value="{{ request.GET.director }}"
+               placeholder="Search by director name">
+    </div>
+    <div>
+        <label for="year_from">제작연도</label>
+        <select id="year_from" name="year_from">
+            <option value="">--전체--</option>
+            {% for year in year_range %}
+            <option value="{{ year }}" {% if request.GET.year_from == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+        ~
+        <select id="year_to" name="year_to">
+            <option value="">--전체--</option>
+            {% for year in year_range %}
+            <option value="{{ year }}" {% if request.GET.year_to == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <button type="submit">조회</button>
+        <button type="button" onclick="resetForm()">초기화</button>
+    </div>
+</form>
+<table>
+    <thead>
+    <tr>
+        <th>영화명</th>
+        <th>영문 영화명</th>
+        <th>제작연도</th>
+        <th>제작국가</th>
+        <th>유형</th>
+        <th>장르</th>
+        <th>제작상태</th>
+        <th>감독</th>
+        <th>제작사</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for movie in page_obj %}
+    <tr>
+        <td>{{ movie.title|default_if_none:"" }}</td>
+        <td>{{ movie.eng_title|default_if_none:"" }}</td>
+        <td>{{ movie.year|default_if_none:"" }}</td>
+        <td>{{ movie.country|default_if_none:"" }}</td>
+        <td>{{ movie.m_type|default_if_none:"" }}</td>
+        <td>
+            {% for genre in movie.genres %}
+            {{ genre|default_if_none:"" }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </td>
+        <td>{{ movie.status|default_if_none:"" }}</td>
+        <td>
+            {% for director in movie.directors %}
+            {{ director|default_if_none:"" }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </td>
+        <td>{{ movie.company|default_if_none:"" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page=1&title={{ request.GET.title }}&director={{ request.GET.director }}&year_from={{ request.GET.year_from }}&year_to={{ request.GET.year_to }}">&laquo;
+        처음</a>
+    <a href="?page={{ page_obj.previous_page_number }}&title={{ request.GET.title }}&director={{ request.GET.director }}&year_from={{ request.GET.year_from }}&year_to={{ request.GET.year_to }}">이전</a>
+    {% endif %}
+    <span class="current">{{ page_obj.number }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&title={{ request.GET.title }}&director={{ request.GET.director }}&year_from={{ request.GET.year_from }}&year_to={{ request.GET.year_to }}">다음</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}&title={{ request.GET.title }}&director={{ request.GET.director }}&year_from={{ request.GET.year_from }}&year_to={{ request.GET.year_to }}">끝
+        &raquo;</a>
+    {% endif %}
+</div>
+<script>
+    function resetForm() {
+        window.location.href = window.location.pathname;
+    }
+</script>
+</body>
+</html>
